@@ -1,0 +1,802 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <cstring>
+#include <vector>
+#include <iomanip>
+#include <fstream>
+
+class Pojazd {
+public:
+    Pojazd() { ++totalVehicles; }
+    virtual int getPredkoscMaksymalna() const = 0;
+    virtual int getIloscPaliwa() const = 0;
+    static int wszystkie_poj() { return totalVehicles; }
+
+private:
+    static int totalVehicles;
+};
+
+int Pojazd::totalVehicles = 0;
+
+// Klasa Car dziedziczy po klasie Pojazd
+class Car : public Pojazd {
+public:
+    // konstruktor z listą
+    Car(const std::string& marka, const std::string& model, int rok_produkcji)
+        : marka(marka), model(model), rok_produkcji(rok_produkcji) {}
+
+    std::string getMarka() const { return marka; }
+    std::string getModel() const { return model; }
+    int getRokProdukcji() const { return rok_produkcji; }
+
+    // Implementacja metody getPredkoscMaksymalna() z klasy Pojazd
+    int getPredkoscMaksymalna() const override {
+        // Zwróć maksymalną prędkość dla samochodu
+        return 200;
+    }
+
+    // Implementacja metody getIloscPaliwa() z klasy Pojazd
+    int getIloscPaliwa() const override {
+        // Zwróć ilość paliwa dla samochodu
+        return 50;
+    }
+
+private:
+    std::string marka;
+    std::string model;
+    int rok_produkcji;
+};
+
+// Klasa Motocykl dziedziczy po klasie Pojazd
+class Motocykl : public Pojazd {
+public:
+    // konstruktor z listą
+    Motocykl(const std::string& marka, const std::string& model, int rok_produkcji)
+        : marka(marka), model(model), rok_produkcji(rok_produkcji) {}
+
+    std::string getMarka() const { return marka; }
+    std::string getModel() const { return model; }
+    int getRokProdukcji() const { return rok_produkcji; }
+
+    // Implementacja metody getPredkoscMaksymalna() z klasy Pojazd
+    int getPredkoscMaksymalna() const override {
+        // Zwróć maksymalną prędkość dla motocykla
+        return 150;
+    }
+
+    // Implementacja metody getIloscPaliwa() z klasy Pojazd
+    int getIloscPaliwa() const override {
+        // Zwróć ilość paliwa dla motocykla
+        return 20;
+    }
+
+private:
+    std::string marka;
+    std::string model;
+    int rok_produkcji;
+};
+
+class Garaz {
+public:
+    //alokowana pamięć na stercie dla tablicy wskaźników do obiektów typu Car o rozmiarze pojemności garażu
+    size_t getPojemnosc() const { return pojemnosc; }
+    const Car* getSamochod(size_t index) const { return samochody[index]; }
+
+    // konstruktor kopiujący
+    Garaz(const Garaz& other) : pojemnosc(other.pojemnosc), samochody(new Car* [other.pojemnosc]) {
+        for (size_t i = 0; i < pojemnosc; i++) {
+            if (other.samochody[i] != nullptr) {
+                samochody[i] = new Car(*other.samochody[i]);
+            }
+            else {
+                samochody[i] = nullptr;
+            }
+        }
+    }
+
+    // zdefiniowany operator przypisania
+    Garaz& operator=(const Garaz& other) {
+        if (this != &other) {
+            // Usunięcie obecnej zawartości garażu
+            for (size_t i = 0; i < pojemnosc; i++) {
+                delete samochody[i];
+            }
+            delete[] samochody;
+
+            // Kopiowanie nowej zawartości garażu
+            pojemnosc = other.pojemnosc;
+            samochody = new Car * [pojemnosc];
+            for (size_t i = 0; i < pojemnosc; i++) {
+                if (other.samochody[i] != nullptr) {
+                    samochody[i] = new Car(*other.samochody[i]);
+                }
+                else {
+                    samochody[i] = nullptr;
+                }
+            }
+        }
+        return *this;
+    }
+
+    // Przeciążony operator indeksowania
+    Car* operator[](size_t index) {
+        if (index < pojemnosc) {
+            return samochody[index];
+        }
+        else {
+            return nullptr;
+        }
+    }
+
+    const Car* operator[](size_t index) const {
+        if (index < pojemnosc) {
+            return samochody[index];
+        }
+        else {
+            return nullptr;
+        }
+    }
+
+    //nowy obiekt na stercie
+    void dodajSamochod(const Car& car) {
+        for (size_t i = 0; i < pojemnosc; i++) {
+            if (samochody[i] == nullptr) {
+                samochody[i] = new Car(car);
+                break;
+            }
+        }
+    }
+
+    void wyswietl_samochody(size_t idWlasciciela) const {
+        std::cout << "<========= Samochody w garażu (Właściciel: " << idWlasciciela << ") =========>\n";
+        std::cout << std::left << std::setw(12) << "Samochód"
+            << std::setw(12) << "Marka"
+            << std::setw(12) << "Model"
+            << std::setw(16) << "Rok produkcji"
+            << std::setw(16) << "ID właściciela"
+            << std::setw(12) << "Mechanik" << "\n";
+        for (size_t i = 0; i < pojemnosc; i++) {
+            const Car* samochod = samochody[i];
+            if (samochod != nullptr) {
+                std::cout << std::left << std::setw(12) << i + 1
+                    << std::setw(12) << samochod->getMarka()
+                    << std::setw(12) << samochod->getModel()
+                    << std::setw(16) << samochod->getRokProdukcji()
+                    << std::setw(16) << idWlasciciela
+                    << std::setw(12) << mechanicy[i]->getImie() << "\n";
+            }
+        }
+    }
+
+    class Mechanik {
+    public:
+        // Konstruktor klasy Mechanik
+        Mechanik(const std::string& imie) : imie(imie) {}
+
+
+        void naprawSamochod(Garaz& garaz, size_t index) {
+            // ...
+        }
+
+
+        std::string getImie() const { return imie; }
+
+    private:
+        std::string imie;
+    };
+
+    friend class Mechanik;  // Deklaracja przyjaźni klasy Mechanik z klasą Garaz
+
+    // Konstruktor klasy Garaz
+    Garaz(size_t pojemnosc)
+        : pojemnosc(pojemnosc),
+        samochody(new Car* [pojemnosc]),    // Alokacja pamięci na stercie dla tablicy wskaźników do obiektów typu Car
+        mechanicy(new Mechanik* [pojemnosc]) {  // Alokacja pamięci na stercie dla tablicy wskaźników do obiektów typu Mechanik
+        std::vector<std::string> imiona = { "Mirek", "Zbyszek", "Grzegorz" };
+        for (size_t i = 0; i < pojemnosc; i++) {
+            samochody[i] = nullptr;
+            mechanicy[i] = new Mechanik(imiona[i % imiona.size()]); // Alokacja pamięci na stercie dla obiektu typu Mechanik
+        }
+    }
+
+    // Destruktor klasy Garaz
+    ~Garaz() {
+        for (size_t i = 0; i < pojemnosc; i++) {
+            delete samochody[i];     // Zwalnianie pamięci zajmowanej przez obiekty typu Car
+            delete mechanicy[i];    // Zwalnianie pamięci zajmowanej przez obiekty typu
+        }
+        delete[] samochody; // Zwalnianie pamięci zajmowanej przez tablicę wskaźników do obiektów typu Car  
+        delete[] mechanicy; // Zwalnianie pamięci zajmowanej przez tablicę wskaźników do obiektów typu Mechanik
+    }
+
+    // ...
+
+private:
+    size_t pojemnosc;
+    Car** samochody;
+    Mechanik** mechanicy;
+};
+
+class Osoba {
+public:
+    Osoba() : id(0), pesel(0), wiek(0), pensja(0), cars{}, garaże{ new Garaz(5) } {}
+    // konstruktor z listą
+    Osoba(size_t id, size_t pesel, size_t wiek, size_t pensja, const std::string& godnosc)
+        : id(id), pesel(pesel), wiek(wiek), pensja(pensja), godnosc(godnosc), cars{}, garaże{ new Garaz(5) } {}
+    // destruktor
+    ~Osoba() {
+        wyczysc_auto();
+        wyczysc_garaze();
+    }
+
+    // Przeciążony operator wyjścia dla klasy osoba
+    friend std::ostream& operator<<(std::ostream& os, const Osoba& osoba) {
+        os << "ID: " << osoba.id << "\n";
+        os << "PESEL: " << osoba.pesel << "\n";
+        os << "Wiek: " << osoba.wiek << "\n";
+        os << "Pensja: " << osoba.pensja << "\n";
+        os << "Godność: " << osoba.godnosc << "\n";
+        return os;
+    }
+
+    // Przeciązony operator wejścia (wczytanie z pliku)
+    friend std::istream& operator>>(std::istream& is, Osoba& osoba) {
+        is >> osoba.id;
+        is >> osoba.pesel;
+        is >> osoba.wiek;
+        is >> osoba.pensja;
+        std::getline(is, osoba.godnosc);
+        return is;
+    }
+
+    void setId(size_t newId) {
+        id = newId;
+    }
+
+    size_t getPesel() const {
+        return pesel;
+    }
+
+    size_t getWiek() const {
+        return wiek;
+    }
+
+    size_t getPensja() const {
+        return pensja;
+    }
+
+    std::string getGodnosc() const {
+        return godnosc;
+    }
+
+    void setGodnosc(const std::string& newGodnosc) {
+        godnosc = newGodnosc;
+    }
+
+    void setPensja(size_t newPensja) {
+        pensja = newPensja;
+    }
+
+    void setWiek(size_t newWiek) {
+        wiek = newWiek;
+    }
+
+    void setPesel(size_t newPesel) {
+        pesel = newPesel;
+    }
+
+    void wyswietl_samochody_w_garazach() const {
+        for (size_t i = 0; i < garaże.size(); i++) {
+            const Garaz* garaz = garaże[i];
+            garaz->wyswietl_samochody(getId());
+        }
+    }
+
+    void ini(std::vector<Osoba*>& osoby, size_t rozmiar) {
+        int max = 1000;
+        int wiek = 30;
+        char string_buf[100];
+        std::vector<std::string> marki = { "Toyota", "Honda", "Ford", "Nissan", "BMW" }; // Nowa lista marek samochodów
+        for (size_t ind = 0; ind < rozmiar; ind++) {
+            if (ind < osoby.size()) {
+                osoby[ind]->setId(ind + 1);
+                std::string nazwisko;
+                osoby[ind]->pesel = rand() % max + 100000000000;
+                osoby[ind]->wiek = rand() % wiek + 20;
+                osoby[ind]->pensja = rand() % wiek + 4000;
+                sprintf_s(string_buf, "%zd", ind);
+                nazwisko = "Nowak_";
+                nazwisko += string_buf;
+                osoby[ind]->setGodnosc(nazwisko);
+
+                // Tworzenie nowych samochodów dla osoby
+                for (size_t i = 0; i < 3; i++) {
+                    int markaIndex = rand() % marki.size(); // Losowy indeks marki samochodu
+                    std::string marka = marki[markaIndex];
+                    std::string model = "Model_" + std::to_string(i + 1);
+                    int rok_produkcji = rand() % 10 + 2010; // Losowy rok produkcji z zakresu 2010-2019
+
+                    Car car(marka, model, rok_produkcji);
+                    osoby[ind]->dodaj_auto(*osoby[ind], car);
+                    osoby[ind]->dodaj_do_garazu(0, car);
+                }
+            }
+            else {
+                // Obsługa błędu: indeks poza zakresem
+                std::cout << "Nieprawidłowy indeks osoby.\n";
+            }
+        }
+    }
+
+    void dodaj_auto(Osoba& osoba, const Car& car) {
+        osoba.cars.push_back(new Car(car));
+    }
+
+    void usun_auto() {
+        if (!cars.empty()) {
+            size_t index = rand() % cars.size();
+            delete cars[index];
+            cars.erase(cars.begin() + index);
+        }
+    }
+
+    void wyczysc_auto() {
+        for (size_t i = 0; i < cars.size(); i++) {
+            delete cars[i];
+        }
+        cars.clear();
+    }
+
+    void wyswietl_garaz(size_t index) const {
+        if (index < garaże.size()) {
+            const Garaz* garaz = garaże[index];
+            std::cout << "Zawartość garażu " << index << ":\n";
+            for (size_t i = 0; i < garaz->getPojemnosc(); i++) {
+                const Car* samochod = garaz->getSamochod(i);
+                if (samochod != nullptr) {
+                    std::cout << "Samochód " << i + 1 << ":\n";
+                    std::cout << "Marka: " << samochod->getMarka() << "\n";
+                    std::cout << "Model: " << samochod->getModel() << "\n";
+                    std::cout << "Rok produkcji: " << samochod->getRokProdukcji() << "\n";
+                }
+            }
+        }
+        else {
+            std::cout << "Nieprawidłowy indeks garażu.\n";
+        }
+    }
+
+    void dodaj_do_garazu(size_t index, const Car& car) {
+        if (index < garaże.size()) {
+            garaże[index]->dodajSamochod(car);
+        }
+    }
+
+    void wyczysc_garaze() {
+        for (size_t i = 0; i < garaże.size(); i++) {
+            delete garaże[i];
+        }
+        garaże.clear();
+    }
+
+    size_t getId() const { return id; }
+    size_t getCarCount() const { return cars.size(); }
+    const Car* getCar(size_t index) const { return cars[index]; }
+
+    Garaz* getGaraz(size_t index) const {
+        if (index < garaże.size()) {
+            return garaże[index];
+        }
+        else {
+            return nullptr;
+        }
+    }
+
+private:
+    size_t id;
+    size_t pesel;
+    size_t wiek;
+    size_t pensja;
+    std::string godnosc;
+    std::vector<Car*> cars;
+    std::vector<Garaz*> garaże;
+
+};
+
+void usun_osobe(std::vector<Osoba*>& osoby, size_t& rozmiar) {
+    if (rozmiar > 0) {
+        size_t index = rand() % rozmiar;
+        if (index < rozmiar) {
+            delete osoby[index];
+            osoby.erase(osoby.begin() + index);
+            --rozmiar; // usuwa osobe i zmniejsza rozmiar
+        }
+        else {
+            std::cout << "ERROR: Index jest nieprawidłowy!\n";
+        }
+    }
+    else {
+        std::cout << "ERROR: Brak osob do usuniecia!\n";
+    }
+}
+
+void dodaj_osobe(std::vector<Osoba*>& osoby, size_t& rozmiar) {
+    size_t id = rozmiar + 1;
+    size_t max = 1000;
+    size_t wiek = 30;
+    size_t pesel = rand() % max + 10000000000;
+    size_t pensja = rand() % wiek + 4000;
+    std::string string_buf = std::to_string(rozmiar + 1);
+    std::string nazwisko = "Nowak_" + string_buf;
+
+    osoby.push_back(new Osoba(id, pesel, wiek, pensja, nazwisko));
+    ++rozmiar;
+}
+
+void edytuj_osobe(std::vector<Osoba*>& osoby, size_t rozmiar) {
+    size_t id;
+    std::cout << "Podaj indeks osoby do edycji: ";
+    std::cin >> id;
+
+    if (id > 0 && id <= rozmiar) {
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::string dane;
+        std::cout << "Podaj nowe dane oddzielone średnikami (Pesel;Wiek;Pensja;Nazwisko): ";
+        std::getline(std::cin, dane);
+
+        std::stringstream ss(dane);
+        std::string token;
+        size_t counter = 0;
+
+        while (std::getline(ss, token, ';')) {
+            std::string nazwisko;
+            switch (counter) {
+            case 0:
+                // Sprawdzanie poprawności i konwersja numeru PESEL
+                try {
+                    size_t pesel = std::stoull(token);
+                    osoby[id - 1]->setPesel(pesel);
+                }
+                catch (...) {
+                    std::cout << "Błąd podczas parsowania numeru PESEL.\n";
+                }
+                break;
+            case 1:
+                // Sprawdzanie poprawności i konwersja wieku
+                try {
+                    size_t wiek = std::stoull(token);
+                    osoby[id - 1]->setWiek(wiek);
+                }
+                catch (...) {
+                    std::cout << "Błąd podczas parsowania wieku.\n";
+                }
+                break;
+            case 2:
+                // Sprawdzanie poprawności i konwersja pensji
+                try {
+                    size_t pensja = std::stoull(token);
+                    osoby[id - 1]->setPensja(pensja);
+                }
+                catch (...) {
+                    std::cout << "Błąd podczas parsowania pensji.\n";
+                }
+                break;
+            case 3:
+                // Sprawdzanie poprawności i przepisywanie nazwiska
+                nazwisko = token;
+                osoby[id - 1]->setGodnosc(nazwisko);
+                break;
+            default:
+                break;
+            }
+            counter++;
+        }
+
+        std::cout << "Dane osoby o indeksie " << id << " zostały zaktualizowane.\n";
+    }
+    else {
+        std::cout << "Nieprawidłowy indeks osoby.\n";
+    }
+}
+
+void print(const std::vector<Osoba*>& osoby) {
+    std::cout << "<========= Osoby =========>\n";
+    for (const auto& osoba : osoby) {
+        std::cout << osoba->getId() << "\t" << osoba->getPesel() << "\t" << osoba->getGodnosc()
+            << "\t" << osoba->getWiek() << "\t" << osoba->getPensja() << std::endl;
+    }
+}
+
+void sortuj_wg_wieku(std::vector<Osoba*>& osoby) {
+    // sortujemy osoby według wieku, sortowanie bąbelkowe
+    bool zamiana = true;
+    size_t rozmiar = osoby.size();
+    while (zamiana) {
+        zamiana = false;
+        for (size_t i = 0; i < rozmiar - 1; i++) {
+            if (osoby[i]->getWiek() > osoby[i + 1]->getWiek()) {
+                std::swap(osoby[i], osoby[i + 1]);
+                zamiana = true;
+            }
+        }
+    }
+    std::cout << "Tabela osoby posortowana wg wieku.\n";
+}
+
+void wyszukaj_po_peselu(const std::vector<Osoba*>& osoby) {
+    // pobieramy numer PESEL od użytkownika
+    size_t pesel;
+    std::cout << "Podaj numer PESEL osoby, której szukasz: ";
+    std::cin >> pesel;
+    // szukamy osoby o podanym numerze PESEL w tabeli
+    size_t ind = 0;
+    while (ind < osoby.size() && osoby[ind]->getPesel() != pesel) {
+        ind++;
+    }
+    // jeśli osoba została znaleziona, wypisujemy jej dane
+    if (ind < osoby.size()) {
+        std::cout << "Osoba o numerze PESEL " << pesel << " została znaleziona w tabeli.\n";
+        std::cout << "Dane osoby:\n";
+        std::cout << "PESEL: " << osoby[ind]->getPesel() << std::endl;
+        std::cout << "Wiek: " << osoby[ind]->getWiek() << std::endl;
+        std::cout << "Pensja: " << osoby[ind]->getPensja() << std::endl;
+        std::cout << "Godność: " << osoby[ind]->getGodnosc() << std::endl;
+    }
+    // inaczej wypadku wypisujemy komunikat o błędzie
+    else {
+        std::cout << "Nie znaleziono osoby o numerze PESEL " << pesel << " w tabeli.\n";
+    }
+}
+
+void zapisz_do_pliku(const std::vector<Osoba*>& osoby, const std::string& nazwa_pliku) {
+    std::ofstream plik(nazwa_pliku);
+    if (plik.is_open()) {
+        for (const auto& osoba : osoby) {
+            plik << osoba->getId() << " "
+                << osoba->getPesel() << " "
+                << osoba->getWiek() << " "
+                << osoba->getPensja() << " "
+                << osoba->getGodnosc() << "\n";
+        }
+        plik.close();
+        std::cout << "Dane zostały zapisane do pliku.\n";
+    }
+    else {
+        std::cout << "Nie udało się otworzyć pliku.\n";
+    }
+}
+
+void wczytaj_z_pliku(std::vector<Osoba*>& osoby, const std::string& nazwa_pliku) {
+    std::ifstream plik(nazwa_pliku);
+    if (plik.is_open()) {
+        size_t id, pesel, wiek, pensja;
+        std::string godnosc;
+        while (plik >> id >> pesel >> wiek >> pensja) {
+            std::getline(plik, godnosc);
+            godnosc.erase(0, 1); // Usunięcie pierwszego znaku (spacji)
+            osoby.push_back(new Osoba(id, pesel, wiek, pensja, godnosc));
+        }
+        plik.close();
+        std::cout << "Dane zostały wczytane z pliku.\n";
+    }
+    else {
+        std::cout << "Nie udało się otworzyć pliku.\n";
+    }
+}
+
+int main() {
+    setlocale(LC_CTYPE, "Polish");
+
+    std::vector<Osoba*> osoby;
+    size_t rozmiar = 10;
+
+    for (size_t i = 0; i < rozmiar; i++) {
+        osoby.push_back(new Osoba());
+    }
+
+    Osoba osoba;
+    osoba.ini(osoby, rozmiar);
+
+    for (size_t i = 0; i < osoby.size(); i++) {
+        if (i < osoby.size()) {
+            Osoba* osoba = osoby[i];
+            // Dostęp do osoby
+        }
+        else {
+            // Obsługa błędu: indeks poza zakresem
+        }
+    }
+
+    int wybor;
+    bool koniec = false;
+
+    while (!koniec) {
+        std::cout << "========OBIEKTY========\n";
+        std::cout << "1. Wyświetl tabelę\n";
+        std::cout << "2. Dodaj osobę\n";
+        std::cout << "3. Usuń osobę\n";
+        std::cout << "4. Sortuj według wieku\n";
+        std::cout << "5. Wyszukaj po peselu\n";
+        std::cout << "========INNE OPCJE========\n";
+        std::cout << "6. Edytuj osobe\n";
+        std::cout << "7. Dodaj samochód do pracownika\n";
+        std::cout << "8. Usun samochod\n";
+        std::cout << "9. Wyswietl samochod\n";
+        std::cout << "10. Wyswietl zawartosc garazu\n";
+        std::cout << "11. Wyswietl osoby za pomocą przeciążonego operatora\n";
+        std::cout << "12. Zapisz do pliku\n";
+        std::cout << "13. Wczytaj z pliku\n";
+        std::cout << "14. Wyświetl liczbę wszystkich pojazdów\n";
+        std::cout << "15. Zakończ program\n";
+        std::cout << "Podaj wybór: ";
+        std::cin >> wybor;
+        std::cout << "\n";
+
+        switch (wybor) {
+        case 1:
+            print(osoby);
+            break;
+        case 2:
+            dodaj_osobe(osoby, rozmiar);
+            break;
+        case 3:
+            usun_osobe(osoby, rozmiar);
+            break;
+        case 4:
+            sortuj_wg_wieku(osoby);
+            break;
+        case 5:
+            wyszukaj_po_peselu(osoby);
+            break;
+        case 6:
+            edytuj_osobe(osoby, rozmiar);
+            break;
+        case 7:
+        {
+            size_t id;
+            std::cout << "Podaj ID osoby, do której chcesz dodać samochód: ";
+            std::cin >> id;
+
+            size_t ind = 0;
+            while (ind < rozmiar && osoby[ind]->getId() != id) {
+                ind++;
+            }
+
+            if (ind < rozmiar) {
+                // Przykładowe marki i modele samochodów
+                std::vector<std::string> marki = { "Toyota", "Honda", "Ford", "Nissan", "BMW" };
+                std::vector<std::string> modele = { "Corolla", "Civic", "Focus", "Altima", "M3" };
+                int rok_produkcji = rand() % 30 + 1990; // Losowy rok produkcji z zakresu 1990-2019
+
+                // Losowanie marki i modelu samochodu
+                std::string marka = marki[rand() % marki.size()];
+                std::string model = modele[rand() % modele.size()];
+
+                // Dodanie nowego samochodu do osoby
+                Car new_car(marka, model, rok_produkcji);
+                osoby[ind]->dodaj_auto(*osoby[ind], new_car);
+
+                // Dodanie samochodu do garażu
+                osoby[ind]->dodaj_do_garazu(0, new_car);
+
+                std::cout << "Samochód został dodany do osoby o ID: " << id << " oraz do pierwszego garażu.\n";
+            }
+            else {
+                std::cout << "Osoba o ID: " << id << " nie została znaleziona.\n";
+            }
+        }
+        break;
+        case 8:
+        {
+            size_t id;
+
+            std::cout << "Podaj ID osoby, u której chcesz usunąć samochód: ";
+            std::cin >> id;
+
+            size_t ind = 0;
+            while (ind < rozmiar && osoby[ind]->getId() != id) {
+                ind++;
+            }
+
+            if (ind < rozmiar) {
+                osoby[ind]->usun_auto();
+                std::cout << "Samochód został usunięty.\n";
+            }
+            else {
+                std::cout << "Osoba o ID: " << id << " nie została znaleziona.\n";
+            }
+        }
+        break;
+
+        case 9:
+        {
+            size_t id;
+
+            std::cout << "Podaj ID osoby, dla której chcesz wyświetlić samochody: ";
+            std::cin >> id;
+
+            size_t ind = 0;
+            while (ind < rozmiar && osoby[ind]->getId() != id) {
+                ind++;
+            }
+
+            if (ind < rozmiar) {
+                std::cout << "Samochody osoby o ID: " << id << ":\n";
+                for (size_t i = 0; i < osoby[ind]->getCarCount(); i++) {
+                    const Car* car = osoby[ind]->getCar(i);
+                    std::cout << i + 1 << ". Marka: " << car->getMarka()
+                        << ", Model: " << car->getModel()
+                        << ", Rok produkcji: " << car->getRokProdukcji()
+                        << "\n";
+                }
+            }
+            else {
+                std::cout << "Osoba o ID: " << id << " nie została znaleziona.\n";
+            }
+            std::cout << "\n";
+        }
+        break;
+        case 10:
+            for (const auto& osoba : osoby) {
+                osoba->wyswietl_samochody_w_garazach();
+
+                // Wykorzystanie operatora indeksowania do odczytu samochodów z garażu
+                Garaz* garaz = osoba->getGaraz(0);  // Pobranie pierwszego garażu osoby
+                if (garaz != nullptr) {
+                    std::cout << "Zawartość garażu:\n";
+                    for (size_t i = 0; i < garaz->getPojemnosc(); i++) {
+                        const Car* samochod = (*garaz)[i];  // Wykorzystanie operatora indeksowania
+                        if (samochod != nullptr) {
+
+                        }
+                    }
+                }
+            }
+            break;
+
+        case 11:
+            for (const auto& osoba : osoby) {
+                std::cout << *osoba << "\n";
+            }
+            break;
+
+        case 12:
+        {
+            std::string nazwa_pliku;
+            std::cout << "Podaj nazwę pliku do zapisu: ";
+            std::cin >> nazwa_pliku;
+            zapisz_do_pliku(osoby, nazwa_pliku);
+        }
+        break;
+
+        case 13:
+        {
+            std::string nazwa_pliku;
+            std::cout << "Podaj nazwę pliku do wczytania: ";
+            std::cin >> nazwa_pliku;
+            wczytaj_z_pliku(osoby, nazwa_pliku);
+        }
+        break;
+
+        case 14:
+            std::cout << "Liczba wszystkich pojazdów: " << Pojazd::wszystkie_poj() << "\n";
+            break;
+
+        case 15:
+            koniec = true;
+            break;
+        default:
+            std::cout << "Nieprawidłowy wybór. Spróbuj ponownie.\n";
+            break;
+        }
+    }
+
+    for (auto* osoba : osoby) {
+        osoba->wyczysc_auto();
+        osoba->wyczysc_garaze();
+        delete osoba;
+    }
+
+    return 0;
+}
